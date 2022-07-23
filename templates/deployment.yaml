@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "alertmanager-sns-forwarder.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "alertmanager-sns-forwarder.name" . }}
+    helm.sh/chart: {{ include "alertmanager-sns-forwarder.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "alertmanager-sns-forwarder.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "alertmanager-sns-forwarder.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
+    {{- end }}
+    spec:
+      {{- if .Values.serviceAccount }}
+      serviceAccountName: {{ .Values.serviceAccount }}
+      {{- end }}
+      {{- with .Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 9087
+              name: webhook-port
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: webhook-port
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: webhook-port
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
+          {{- if .Values.sns.forwarder.email.enabled  }}   
+          volumeMounts:
+          - name: email-template
+            mountPath: {{ .Values.sns.forwarder.email.templateMountPath }}
+            readOnly: true
+          {{- end }} 
+          {{- if .Values.args.enabled }}
+          args: ["--addr=:{{ .Values.sns.forwarder.port }}", "--debug", "--arn-prefix={{ .Values.args.arn.prefix }}"]          
+          {{- end }}
+          env:
+            - name: AWS_REGION
+              value: {{ .Values.sns.forwarder.region | quote }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.sns.forwarder.default_region | quote }}
+            - name: SNS_FORWARDER_ADDRESS
+              value: ":{{ .Values.sns.forwarder.port }}"
+            - name: SNS_FORWARDER_DEBUG
+              value: "{{ .Values.sns.forwarder.debug }}"
+            - name: SNS_FORWARDER_ARN_PREFIX
+              value: "{{ .Values.sns.forwarder.arn.prefix }}"
+            {{- if .Values.sns.forwarder.email.enabled  }}          
+            - name: SNS_SUBJECT
+              value: "{{ .Values.sns.forwarder.email.subject }}"
+            - name: SNS_FORWARDER_TEMPLATE_PATH
+              value:  "{{ .Values.sns.forwarder.email.templateMountPath }}/email.tmpl"                   
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.sns.forwarder.email.enabled  }}     
+      volumes:
+      - name: email-template
+        secret:
+          secretName: {{ include "alertmanager-sns-forwarder.fullname" . }}          
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

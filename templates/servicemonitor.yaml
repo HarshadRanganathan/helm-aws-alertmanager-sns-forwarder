@@ -1,0 +1,21 @@
+{{- if .Values.servicemonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "alertmanager-sns-forwarder.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "alertmanager-sns-forwarder.name" . }}
+    helm.sh/chart: {{ include "alertmanager-sns-forwarder.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    svcmon: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "alertmanager-sns-forwarder.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpoints:
+  - port: webhook-port
+    scrapeTimeout: "30s"
+    interval: "40s"
+{{- end }}
