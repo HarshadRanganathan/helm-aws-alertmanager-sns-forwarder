@@ -1,0 +1,31 @@
+Status: {{.Status}}
+Reciever: {{.Receiver}}
+
+Group key: {{.GroupKey}}
+Common Alert Annotations:
+  {{ range $index, $val := .CommonAnnotations -}}
+    - {{$index}}: {{$val}}
+  {{ end}}
+Common Alert Labels:
+  {{ range $index,  $val := .CommonLabels -}}
+    - {{$index}}: {{$val}}
+  {{ end}}
+Alert Group Labels:
+  {{ range $index, $val := .GroupLabels -}}
+    - {{$index}}: {{$val}}
+  {{ end}}
+
+Active Alert List:
+  {{ range  $val := .Alerts -}}
+  Alert:
+    Annotations: 
+    {{ range $index, $anno := $val.Annotations -}}
+      - {{$index}}: {{$anno}}
+    {{ end}}
+    Labels:
+    {{ range $index, $labels := $val.Labels -}}
+      - {{$index}}: {{$labels}}
+    {{ end}}
+    Start Time {{$val.StartsAt}}
+  {{ end}}
+Version:{{.Version}}
