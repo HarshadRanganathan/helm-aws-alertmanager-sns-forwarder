@@ -1,1 +1,6 @@
-i
+sns:
+  forwarder:
+    arn:
+      prefix: "<sns-arn>"
+  email:
+    subject: "AWS Alert Notification"
