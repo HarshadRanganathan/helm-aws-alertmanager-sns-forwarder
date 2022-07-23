@@ -1,1 +1,13 @@
-i
+serviceAccount: "prometheus"
+fullnameOverride: "alertmanager-sns-forwarder"
+sns:
+  forwarder:
+    debug: false
+    region: "us-east-1"
+    default_region: "us-east-1" 
+    port: 9087
+    email:
+      enabled: true
+      subject: "AWS Alert Notification" # Override in Each Env config
+      templateFilePath: "default_email.tmpl"
+      templateMountPath: "/template/email"
